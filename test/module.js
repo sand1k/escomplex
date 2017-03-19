@@ -1,9 +1,10 @@
 /* global require, suite, setup, teardown, test */
 'use strict'
-var assert = require('chai').assert
-var mozWalker = require('../src/walker')
-var parsers = require('./helpers/parsers')
-var modulePath = '../src/module'
+const assert = require('chai').assert
+const _merge = require('lodash.merge')
+const mozWalker = require('../src/walker')
+const parsers = require('./helpers/parsers')
+const modulePath = '../src/module'
 
 function equal (actual, expected, digits) {
   return Math.abs(actual - expected) < Math.pow(10, digits * -1)
@@ -851,6 +852,45 @@ suite('module:', function () {
           assert.strictEqual(report.aggregate.halstead.operands.distinct, 9)
         })
       })
+      suite('for...of loop:', function () {
+        var report
+        setup(function () {
+          report = escomplex.analyse(parser.parse('var item; for (item of [ "foo", "bar", "baz" ]) { "wibble"; }', options), mozWalker)
+        })
+        teardown(function () {
+          report = undefined
+        })
+        test('aggregate has correct logical lines of code', function () {
+          assert.strictEqual(report.aggregate.sloc.logical, 3)
+        })
+        test('aggregate has correct cyclomatic complexity', function () {
+          assert.strictEqual(report.aggregate.cyclomatic, 1)
+        })
+        test('functions is empty', function () {
+          assert.lengthOf(report.functions, 0)
+        })
+        test('aggregate has correct Halstead total operators', function () {
+          assert.strictEqual(report.aggregate.halstead.operators.total, 3)
+        })
+        test('aggregate has correct Halstead distinct operators', function () {
+          assert.strictEqual(report.aggregate.halstead.operators.distinct, 3)
+        })
+        test('aggregate has correct Halstead total operands', function () {
+          assert.strictEqual(report.aggregate.halstead.operands.total, 7)
+        })
+        test('aggregate has correct Halstead distinct operands', function () {
+          assert.strictEqual(report.aggregate.halstead.operands.distinct, 6)
+        })
+        test('aggregate has correct Halstead length', function () {
+          assert.strictEqual(report.aggregate.halstead.length, 10)
+        })
+        test('aggregate has correct Halstead vocabulary', function () {
+          assert.strictEqual(report.aggregate.halstead.vocabulary, 9)
+        })
+        test('aggregate has correct Halstead difficulty', function () {
+          assert.strictEqual(Math.round(report.aggregate.halstead.difficulty), 2)
+        })
+      })
       suite('while loop:', function () {
         var report
         setup(function () {
@@ -1186,6 +1226,87 @@ suite('module:', function () {
         })
         test('aggregate has correct Halstead distinct operands', function () {
           assert.strictEqual(report.aggregate.halstead.operands.distinct, 3)
+        })
+      })
+      suite('class declaration', function () {
+        var report
+        setup(function () {
+          report = escomplex.analyse(parser.parse('class foo { constructor () { "foo"; } }', options), mozWalker)
+        })
+        teardown(function () {
+          report = undefined
+        })
+        test('aggregate has correct logical lines of code', function () {
+          assert.strictEqual(report.aggregate.sloc.logical, 2)
+        })
+        test('aggregate has correct cyclomatic complexity', function () {
+          assert.strictEqual(report.aggregate.cyclomatic, 1)
+        })
+        test('functions has correct length', function () {
+          assert.lengthOf(report.functions, 1)
+        })
+        test('function has correct name', function () {
+          assert.strictEqual(report.functions[0].name, 'constructor')
+        })
+        test('function has correct physical lines of code', function () {
+          assert.strictEqual(report.functions[0].sloc.physical, 1)
+        })
+        test('function has correct logical lines of code', function () {
+          assert.strictEqual(report.functions[0].sloc.logical, 1)
+        })
+        test('function has correct cyclomatic complexity', function () {
+          assert.strictEqual(report.functions[0].cyclomatic, 1)
+        })
+        test('function has correct parameter count', function () {
+          assert.strictEqual(report.functions[0].params, 0)
+        })
+        test('aggregate has correct Halstead total operators', function () {
+          assert.strictEqual(report.aggregate.halstead.operators.total, 2)
+        })
+        test('aggregate has correct Halstead distinct operators', function () {
+          assert.strictEqual(report.aggregate.halstead.operators.distinct, 2)
+        })
+        test('aggregate has correct Halstead total operands', function () {
+          assert.strictEqual(report.aggregate.halstead.operands.total, 3)
+        })
+        test('aggregate has correct Halstead distinct operands', function () {
+          assert.strictEqual(report.aggregate.halstead.operands.distinct, 3)
+        })
+        test('aggregate has correct Halstead length', function () {
+          assert.strictEqual(report.aggregate.halstead.length, 5)
+        })
+        test('aggregate has correct Halstead vocabulary', function () {
+          assert.strictEqual(report.aggregate.halstead.vocabulary, 5)
+        })
+        test('aggregate has correct Halstead difficulty', function () {
+          assert.strictEqual(report.aggregate.halstead.difficulty, 1)
+        })
+        test('function has correct Halstead length', function () {
+          assert.strictEqual(report.functions[0].halstead.length, 1)
+        })
+        test('function has correct Halstead vocabulary', function () {
+          assert.strictEqual(report.functions[0].halstead.vocabulary, 1)
+        })
+        test('function has correct Halstead difficulty', function () {
+          assert.strictEqual(report.functions[0].halstead.difficulty, 0)
+        })
+        test('function has correct Halstead volume', function () {
+          assert.strictEqual(report.functions[0].halstead.volume, 0)
+        })
+        test('function has correct Halstead effort', function () {
+          assert.strictEqual(report.functions[0].halstead.effort, 0)
+        })
+        test('function has correct Halstead bugs', function () {
+          assert.strictEqual(report.functions[0].halstead.bugs, 0)
+        })
+        test('function has correct Halstead time', function () {
+          assert.strictEqual(report.functions[0].halstead.time, 0)
+        })
+        test('maintainability index is correct', function () {
+          assert.strictEqual(report.maintainability, 171)
+        })
+        test('aggregate has correct parameter count', function () {
+          assert.strictEqual(report.aggregate.params, 0)
         })
       })
       suite('assignment expression', function () {
@@ -2141,6 +2262,61 @@ suite('module:', function () {
           assert.strictEqual(report.dependencies[0].line, 1)
           assert.strictEqual(report.dependencies[0].path, '* dynamic dependency *')
           assert.strictEqual(report.dependencies[0].type, 'CommonJS')
+        })
+      })
+      suite('ES2015 module import:', function () {
+        var report
+        setup(function () {
+          report = escomplex.analyse(
+            parser.parse(
+              'import foo from "./foo";',
+              _merge({}, options, {sourceType: 'module'})
+            ),
+            mozWalker
+          )
+        })
+        teardown(function () {
+          report = undefined
+        })
+        test('dependencies has correct length', function () {
+          assert.lengthOf(report.dependencies, 1)
+        })
+        test('dependencies are correct', function () {
+          assert.isObject(report.dependencies[0])
+          assert.strictEqual(report.dependencies[0].line, 1)
+          assert.strictEqual(report.dependencies[0].path, './foo')
+          assert.strictEqual(report.dependencies[0].type, 'Module')
+        })
+      })
+      suite('ES2015 module import and AMD require:', function () {
+        var report
+        setup(function () {
+          report = escomplex.analyse(
+            parser.parse(
+              'import foo from "./foo"; require([ "./bar" ], function (bar) {});',
+              _merge({}, options, {sourceType: 'module'})
+            ),
+            mozWalker
+          )
+        })
+        teardown(function () {
+          report = undefined
+        })
+        test('dependencies has correct length', function () {
+          assert.lengthOf(report.dependencies, 2)
+        })
+        test('dependencies are correct', function () {
+          const esModule = report.dependencies[0]
+          assert.isObject(esModule)
+          assert.strictEqual(esModule.line, 1)
+          assert.strictEqual(esModule.path, './foo')
+          assert.strictEqual(esModule.type, 'Module')
+
+          const amdModule = report.dependencies[1]
+          assert.isObject(amdModule)
+          assert.strictEqual(amdModule.line, 1)
+          assert.strictEqual(amdModule.path, './bar')
+          assert.strictEqual(amdModule.type, 'AMD')
         })
       })
       suite('AMD require literal:', function () {
