@@ -20,6 +20,13 @@ const ClassDeclaration = settings => defineSyntax({
   children: [ 'superClass', 'body' ]
 })
 
+const ClassExpression = settings => defineSyntax({
+  lloc: 1,
+  operators: 'class',
+  operands: node => node.id.name,
+  children: [ 'superClass', 'body' ]
+})
+
 const ImportDeclaration = settings => defineSyntax({
   lloc: 1,
   operators: 'import',
@@ -57,6 +64,7 @@ const MethodDefinition = settings => defineSyntax({
 module.exports = {
   ClassBody,
   ClassDeclaration,
+  ClassExpression,
   ExportAllDeclaration,
   ExportDefaultDeclaration,
   ExportNamedDeclaration,
